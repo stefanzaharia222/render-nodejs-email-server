@@ -1,16 +1,17 @@
 # Email Server Node.js
 
-Un server Node.js simplu și eficient pentru trimiterea de email-uri prin cereri POST.
+Un server Node.js simplu și eficient pentru trimiterea de email-uri prin cereri POST, cu funcționalitate specială pentru formulare de contact.
 
 ## Caracteristici
 
 - 🚀 Server Express.js rapid și ușor
 - 📧 Trimitere email prin Nodemailer
+- 📝 Endpoint special pentru formulare de contact cu notificări duale
 - 🛡️ Rate limiting pentru protecția împotriva spam-ului
 - ✅ Validare de date cu Joi
 - 🔒 Suport pentru variabile de mediu
 - 🌐 CORS activat pentru cereri cross-origin
-- ❤️ Health check endpoint
+- ❤️ Health check endpoints
 
 ## Instalare
 
@@ -79,6 +80,69 @@ GET /health
 }
 ```
 
+#### API Health Check
+```http
+GET /api/health
+```
+
+**Răspuns:**
+```json
+{
+  "status": "OK",
+  "message": "Contact API is running",
+  "endpoints": {
+    "contact": "/api/contact",
+    "health": "/api/health"
+  },
+  "timestamp": "2024-01-01T12:00:00.000Z"
+}
+```
+
+#### Contact Form (Nou!)
+```http
+POST /api/contact
+Content-Type: application/json
+```
+
+**Body:**
+```json
+{
+  "name": "Ioan Popescu",
+  "email": "ioan@agentia.ro", 
+  "company": "Digital Agency SRL",
+  "projectType": "webapp",
+  "budget": "5000-10000",
+  "deadline": "2025-08-15",
+  "description": "Descrierea detaliată a proiectului...",
+  "_subject": "Cerere nouă de contact: Ioan Popescu - Digital Agency SRL"
+}
+```
+
+**Tipuri de proiect acceptate:**
+- `webapp` - Aplicație Web
+- `mobile` - Aplicație Mobilă  
+- `desktop` - Aplicație Desktop
+- `other` - Altele
+
+**Ce face endpoint-ul:**
+1. **Trimite notificare internă** către:
+   - contact@zahariacompany.com
+   - stefanzaharia222@gmail.com
+2. **Trimite email de confirmare** clientului
+3. **Returnează confirmarea** că ambele emailuri au fost trimise
+
+**Răspuns de succes:**
+```json
+{
+  "success": true,
+  "message": "Cererea a fost trimisă cu succes. Vei primi un email de confirmare în scurt timp.",
+  "details": {
+    "internalMessageId": "internal-email-id",
+    "clientMessageId": "client-email-id"
+  }
+}
+```
+
 #### Trimite Email
 ```http
 POST /send-email
@@ -116,7 +180,46 @@ Content-Type: application/json
 
 ### Exemple de utilizare
 
-#### cURL
+#### Contact Form - cURL
+```bash
+curl -X POST http://localhost:3000/api/contact \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Ioan Popescu",
+    "email": "ioan@agentia.ro",
+    "company": "Digital Agency SRL", 
+    "projectType": "webapp",
+    "budget": "5000-10000",
+    "deadline": "2025-08-15",
+    "description": "Avem nevoie de o aplicație web pentru gestionarea proiectelor interne."
+  }'
+```
+
+#### Contact Form - JavaScript (fetch)
+```javascript
+const contactData = {
+  name: 'Maria Ionescu',
+  email: 'maria@startup.ro',
+  company: 'Tech Startup SRL',
+  projectType: 'mobile',
+  budget: '10000-20000', 
+  deadline: '2025-12-01',
+  description: 'Căutăm să dezvoltăm o aplicație mobilă inovatoare pentru iOS și Android.'
+};
+
+const response = await fetch('http://localhost:3000/api/contact', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify(contactData)
+});
+
+const result = await response.json();
+console.log(result);
+```
+
+#### Email Generic - cURL
 ```bash
 curl -X POST http://localhost:3000/send-email \
   -H "Content-Type: application/json" \
@@ -127,7 +230,7 @@ curl -X POST http://localhost:3000/send-email \
   }'
 ```
 
-#### JavaScript (fetch)
+#### Email Generic - JavaScript (fetch)
 ```javascript
 const response = await fetch('http://localhost:3000/send-email', {
   method: 'POST',
@@ -153,11 +256,21 @@ Serverul implementează rate limiting pentru a preveni abuzul:
 
 ## Validare Date
 
-Toate cererea sunt validate folosind Joi:
+### Email Generic (endpoint /send-email)
 - **to**: Email valid (obligatoriu)
 - **subject**: String între 1-200 caractere (obligatoriu)
 - **text** sau **html**: Cel puțin unul este obligatoriu
 - **from**: Email valid (opțional)
+
+### Contact Form (endpoint /api/contact)
+- **name**: String între 2-100 caractere (obligatoriu)
+- **email**: Email valid (obligatoriu)
+- **company**: String între 2-100 caractere (obligatoriu)
+- **projectType**: `webapp`, `mobile`, `desktop`, sau `other` (obligatoriu)
+- **budget**: String (obligatoriu)
+- **deadline**: String (obligatoriu)
+- **description**: String între 10-2000 caractere (obligatoriu)
+- **_subject**: String (opțional, pentru subiectul emailului intern)
 
 ## Securitate
 
