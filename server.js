@@ -8,6 +8,9 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Trust proxy for Render.com and other hosting platforms
+app.set('trust proxy', true);
+
 // Middleware
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
@@ -18,6 +21,13 @@ const emailLimiter = rateLimit({
   max: 10, // limit each IP to 10 requests per windowMs
   message: {
     error: 'Prea multe cereri de trimitere email. Încearcă din nou în 15 minute.'
+  },
+  // Better handling for proxies like Render.com
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+  // Use a more reliable key generator for proxied environments
+  keyGenerator: (req) => {
+    return req.ip || req.connection.remoteAddress || 'unknown';
   }
 });
 
